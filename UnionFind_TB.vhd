@@ -73,9 +73,17 @@ begin
 
     test   <= 1;
     print("test: " & integer'image(test+1));
-    id1    <= "010"; id2 <= "010"; ctrl <= "00";
-    wait until rising_edge(clk_test);
-    wait until rising_edge(clk_test);
+
+    wait until ready = '1';
+    id1    <= "010"; id2 <= "010"; ctrl <= "01";
+    wait until ready = '1';
+    ctrl <= "00";
+    
+    for i in 0 to 20 loop
+      wait until rising_edge(clk_test);
+    end loop;
+    
+
     ENDSIM := true;
     print ("----- SIMULATION COMPLETED -----");
     wait;
