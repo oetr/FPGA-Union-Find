@@ -72,18 +72,20 @@ begin
           if ctrl_valid = '1' then
             case ctrl is
               when "00" => null;
-              when "01" =>                -- union
+              when "01" =>              -- union
                 id2_int_reg     <= id2_int;
                 state           <= find;
                 current_id      <= nodes(id1_int).parent;
                 return_to_state <= union1;
 
-              when "10" =>                -- find
+              when "10" =>              -- find
                 state           <= find;
                 current_id      <= nodes(id1_int).parent;
                 return_to_state <= idle;
 
-              when "11"   => null;
+              when "11"   =>
+                state <= init;
+                counter <= 0;
               when others => null;
             end case;
           end if;
@@ -95,9 +97,18 @@ begin
           state           <= find;
 
         when union =>
-          nodes(id1_int_reg).parent <= root_int;
-          ready_reg                 <= '1';
-          state                     <= idle;
+          if nodes(id1_int_reg).parent /= root_int then
+
+            if nodes(id1_int_reg).weight < nodes(root_int).weight then
+              nodes(id1_int_reg).parent <= root_int;
+              nodes(root_int).weight    <= nodes(root_int).weight + nodes(id1_int_reg).weight;
+            else
+              nodes(root_int).parent    <= id1_int_reg;
+              nodes(id1_int_reg).weight <= nodes(id1_int_reg).weight + nodes(root_int).weight;
+            end if;
+          end if;
+          ready_reg <= '1';
+          state     <= idle;
 
         when find =>
           current_id <= nodes(current_id).parent;

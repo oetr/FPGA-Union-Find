@@ -147,6 +147,18 @@ begin
       x_std := std_logic_vector(to_unsigned(x, N));
       find(x_std);
     end procedure find;
+
+
+    procedure init is
+    begin
+      ctrl       <= "11";
+      ctrl_valid <= '1';
+      wait until rising_edge(clk_test);
+      ctrl_valid <= '0';
+      wait until ready = '1';
+      ctrl       <= "00";
+      print_nodes(ctrl, id1, id2);
+    end procedure init;
   begin
     ------------------------------------------------------------------
     -- reset and assign default values
@@ -163,11 +175,12 @@ begin
     union(1, 2);
     union(2, 3);
     union(3, 4);
---    union(4, 3);
-    union(0, 5);
-    union(0, 6);
-    union(0, 7);
-    find(0);
+--    union(4, 5);
+    union(5, 6);
+    union(7, 6);
+    union(7, 4);
+    find(7);
+    init;
     wait until rising_edge(clk_test);
     ENDSIM := true;
     print ("----- SIMULATION COMPLETED -----");
