@@ -14,17 +14,19 @@ entity UnionFind_TB is
 end UnionFind_TB;
 ------------------------------------------------------------------------
 architecture Testbench of UnionFind_TB is
-  constant N    : integer := 3;
-  constant T    : time    := 20 ns;     -- clk period
-  signal result : std_logic_vector(N - 1 downto 0);
-  signal clk    : std_logic;
-  signal rst    : std_logic;
-  signal id1  : std_logic_vector(N-1 downto 0);
-  signal id2  : std_logic_vector(N-1 downto 0);
-  signal root   : std_logic_vector(N-1 downto 0);
-  signal ready  : std_logic;
-  signal ctrl   : std_logic_vector(1 downto 0);
-  signal test   : integer := 0;
+  constant N      : integer                          := 3;
+  constant T      : time                             := 20 ns;
+  signal result   : std_logic_vector(N - 1 downto 0) := (others => '0');
+  signal clk_test : std_logic;
+  signal rst      : std_logic;
+  signal id1      : std_logic_vector(N-1 downto 0)   := (others => '0');
+  signal id2      : std_logic_vector(N-1 downto 0)   := (others => '0');
+  signal root     : std_logic_vector(N-1 downto 0)   := (others => '0');
+  signal ready    : std_logic;
+  signal ctrl     : std_logic_vector(1 downto 0)     := (others => '0');
+  signal test     : integer                          := 0;
+
+  shared variable ENDSIM : boolean := false;
 begin
 
   ---- Design Under Verification -----------------------------------------
@@ -32,20 +34,24 @@ begin
     generic map (
       N => N)
     port map (
-      id1 => id1,
-      id2 => id2,
+      id1   => id1,
+      id2   => id2,
       ctrl  => ctrl,
       root  => root,
       ready => ready,
-      clk   => clk);
+      clk   => clk_test);
 
   ---- Clock running forever ---------------------------------------------
   process
   begin
-    clk <= '0';
-    wait for T/2;
-    clk <= '1';
-    wait for T/2;
+    if ENDSIM = false then
+      clk_test <= '0';
+      wait for T/2;
+      clk_test <= '1';
+      wait for T/2;
+    else
+      wait;
+    end if;
   end process;
 
   ---- Reset asserted for T/2 --------------------------------------------
@@ -57,19 +63,21 @@ begin
     ------------------------------------------------------------------
     -- reset and assign default values
     ------------------------------------------------------------------
-    rst  <= '1';
-    wait until rising_edge(clk);
-    rst  <= '0';
+    rst <= '1';
+    wait until rising_edge(clk_test);
+    rst <= '0';
 
     ------------------------------------------------------------------
     -- read the file with inputs and compare with the outputs
     ------------------------------------------------------------------
-    
-    test <= 1;
+
+    test   <= 1;
     print("test: " & integer'image(test+1));
-    id1 <= "010"; id2 <= "010";  ctrl <= "00";
-    wait until rising_edge(clk);
-    wait until rising_edge(clk);
-    assert false report "Simulation completed" severity failure;
+    id1    <= "010"; id2 <= "010"; ctrl <= "00";
+    wait until rising_edge(clk_test);
+    wait until rising_edge(clk_test);
+    ENDSIM := true;
+    print ("----- SIMULATION COMPLETED -----");
+    wait;
   end process;
 end Testbench;
