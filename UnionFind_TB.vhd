@@ -15,42 +15,33 @@ entity UnionFind_TB is
 end UnionFind_TB;
 ------------------------------------------------------------------------
 architecture Testbench of UnionFind_TB is
---  constant N : integer := 3;
-
-  --type node is record
-  --  parent : integer range 0 to 2**N-1;
-  --  weight : integer range 0 to 2**N-1;
-  --end record node;
-  --type node_vector is array (natural range <>) of node;
-
-  constant T      : time                             := 20 ns;
-  signal result   : std_logic_vector(N - 1 downto 0) := (others => '0');
-  signal clk_test : std_logic;
-  signal rst      : std_logic;
-  signal id1      : std_logic_vector(N-1 downto 0)   := (others => '0');
-  signal id2      : std_logic_vector(N-1 downto 0)   := (others => '0');
-  signal root     : std_logic_vector(N-1 downto 0)   := (others => '0');
-  signal ready    : std_logic;
-  signal ctrl     : std_logic_vector(1 downto 0)     := (others => '0');
-  signal test     : integer                          := 0;
-  signal nodes    : node_vector (0 to 2**N-1)        := (others => (N-1, 1));
-
-
-  shared variable ENDSIM : boolean := false;
+  constant T             : time                             := 20 ns;
+  signal result          : std_logic_vector(N - 1 downto 0) := (others => '0');
+  signal clk_test        : std_logic;
+  signal rst             : std_logic;
+  signal id1             : std_logic_vector(N-1 downto 0)   := (others => '0');
+  signal id2             : std_logic_vector(N-1 downto 0)   := (others => '0');
+  signal root            : std_logic_vector(N-1 downto 0)   := (others => '0');
+  signal ready           : std_logic;
+  signal ctrl            : std_logic_vector(1 downto 0)     := (others => '0');
+  signal ctrl_valid      : std_logic                        := '0';
+  signal test            : integer                          := 0;
+  signal nodes           : node_vector (0 to 2**N-1)        := (others => (N-1, 1));
+  shared variable ENDSIM : boolean                          := false;
 begin
-
   ---- Design Under Verification -----------------------------------------
   DUV : entity work.UnionFind
     generic map (
       N => N)
     port map (
-      all_nodes => nodes,
-      id1       => id1,
-      id2       => id2,
-      ctrl      => ctrl,
-      root      => root,
-      ready     => ready,
-      clk       => clk_test);
+      all_nodes  => nodes,
+      id1        => id1,
+      id2        => id2,
+      ctrl       => ctrl,
+      ctrl_valid => ctrl_valid,
+      root       => root,
+      ready      => ready,
+      clk        => clk_test);
 
   ---- Clock running forever ---------------------------------------------
   process
@@ -97,6 +88,10 @@ begin
         write(s, string'(integer'image(nodes(i).parent) & " "));
       end loop;
       writeline(output, s);
+      for i in 0 to 2**N-1 loop
+        write(s, string'(integer'image(nodes(i).weight) & " "));
+      end loop;
+      writeline(output, s);
       if operation = "find " then
         print("----------------- => " & integer'image(to_integer(unsigned(root))));
       else
@@ -109,10 +104,14 @@ begin
       constant x : in std_logic_vector;
       constant y : in std_logic_vector) is
     begin
-      id1  <= x;
-      id2  <= y;
-      ctrl <= "01";
+      id1        <= x;
+      id2        <= y;
+      ctrl       <= "01";
+      ctrl_valid <= '1';
+      wait until rising_edge(clk_test);
+      ctrl_valid <= '0';
       wait until ready = '1';
+      ctrl       <= "00";
       print_nodes(ctrl, id1, id2);
     end procedure union;
 
@@ -132,9 +131,13 @@ begin
     procedure find (
       constant x : in std_logic_vector) is
     begin
-      id1  <= x;
-      ctrl <= "10";
+      id1        <= x;
+      ctrl       <= "10";
+      ctrl_valid <= '1';
+      wait until rising_edge(clk_test);
+      ctrl_valid <= '0';
       wait until ready = '1';
+      ctrl       <= "00";
       print_nodes(ctrl, id1, id2);
     end procedure find;
 
@@ -156,23 +159,16 @@ begin
     -- read the file with inputs and compare with the outputs
     ------------------------------------------------------------------
     wait until ready = '1';
+    union(0, 1);
     union(1, 2);
     union(2, 3);
     union(3, 4);
-    union(4, 5);
-    union(5, 6);
-    find(1);
-
---    id1  <= "111"; id2 <= "010"; ctrl <= "01";
---    wait until ready = '1';
---    print_nodes(ctrl, id1, id2);
-    ctrl <= "00";
-
-    --for i in 0 to 20 loop
+--    union(4, 3);
+    union(0, 5);
+    union(0, 6);
+    union(0, 7);
+    find(0);
     wait until rising_edge(clk_test);
-    --end loop;
-
-
     ENDSIM := true;
     print ("----- SIMULATION COMPLETED -----");
     wait;

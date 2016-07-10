@@ -14,4 +14,6 @@ all: $(TARGET).vhd
 
 .PHONY: clean
 clean:
-	$(RM) $(SIM_DIR)
+	$(RM) $(SIM_DIR)/*.vhd
+	$(RM) $(SIM_DIR)/*.ghw
+	$(RM) $(SIM_DIR)/*.cf
