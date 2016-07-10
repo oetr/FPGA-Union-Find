@@ -6,6 +6,11 @@ use std.textio.all;
 use work.txt_util.all;
 ----------------------------------------------------------------------
 package TB_library is
+  type node is record
+    parent : integer range 0 to 2**N-1;
+    weight : integer range 0 to 2**N-1;
+  end record node;
+  
   constant N : integer := 2;
   type test_vector is record
     node1 : std_logic_vector(N-1 downto 0);
