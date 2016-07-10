@@ -75,7 +75,7 @@ begin
     print("test: " & integer'image(test+1));
 
     wait until ready = '1';
-    id1    <= "010"; id2 <= "010"; ctrl <= "01";
+    id1    <= "111"; id2 <= "010"; ctrl <= "10";
     wait until ready = '1';
     ctrl <= "00";
     

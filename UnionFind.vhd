@@ -35,10 +35,14 @@ architecture arch of UnionFind is
   type state_type is (init, idle, find, union);
   -- signals
   signal state            : state_type                := init;
+  signal return_to_state  : state_type                := init;
   signal nodes            : node_vector (0 to 2**N-1) := (others => (N-1, 1));
   signal id1_int, id2_int : integer range 0 to 2**N-1 := 0;
+  signal current_id       : integer range 0 to 2**N-1 := 0;
   signal root_int         : integer range 0 to 2**N-1 := 0;
   signal counter          : integer range 0 to 2**N-1 := 0;
+
+
 
   -- output signals
   signal ready_reg : std_logic := '0';
@@ -67,8 +71,12 @@ begin
             when "00" => null;
             when "01" =>                -- union
               state <= union;
+
             when "10" =>                -- find
-              state <= find;
+              state           <= find;
+              current_id      <= nodes(id1_int).parent;
+              return_to_state <= idle;
+
             when "11"   => null;
             when others => null;
           end case;
@@ -78,26 +86,17 @@ begin
           state     <= idle;
 
         when find =>
-          ready_reg <= '1';
-          state     <= idle;
-
+          current_id <= nodes(current_id).parent;
+          if nodes(current_id).parent = current_id then
+            ready_reg <= '1';
+            root_int  <= current_id;
+            state     <= return_to_state;
+          end if;
 
         when others => null;
       end case;
 
     end if;
-  end process;
-
-  -- find root of id1
-  process is
-  begin
-    
-  end process;
-
-  -- find root of id2
-  process is
-  begin
-
   end process;
 
   id1_int <= to_integer(unsigned(id1));
