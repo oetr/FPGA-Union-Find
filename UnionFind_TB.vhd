@@ -225,9 +225,9 @@ begin
     end loop;
 
     -- Manual test
-    DEBUG        := true;
-    main_test_nr := 3;
     init;
+    main_test_nr := 3;
+    DEBUG        := true;
     for i in 0 to 15 loop
       union(i, 31-i);
     end loop;

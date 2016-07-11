@@ -43,6 +43,7 @@ architecture arch of UnionFind is
   signal nodes                    : node_vector (0 to 2**N-1) := (others => (N-1, 1));
   signal id1_int, id2_int         : integer range 0 to 2**N-1 := 0;
   signal id1_int_reg, id2_int_reg : integer range 0 to 2**N-1 := 0;
+  signal find_start_id            : integer range 0 to 2**N-1 := 0;
   signal xRoot, yRoot             : integer range 0 to 2**N-1 := 0;
   signal current_id               : integer range 0 to 2**N-1 := 0;
   signal root_int                 : integer range 0 to 2**N-1 := 0;
@@ -78,11 +79,14 @@ begin
                 state           <= find;
                 current_id      <= nodes(id1_int).parent;
                 return_to_state <= union1;
+                -- path compression
+                find_start_id   <= id1_int;
 
               when "10" =>              -- find
-                id1_int_reg     <= id1_int;
+                find_start_id   <= id1_int;
                 state           <= find;
                 current_id      <= nodes(id1_int).parent;
+                -- path compression
                 return_to_state <= idle;
 
               when "11" =>
@@ -97,6 +101,8 @@ begin
           current_id      <= nodes(id2_int_reg).parent;
           return_to_state <= union;
           state           <= find;
+          -- path compression
+          find_start_id   <= id2_int_reg;
 
         when union =>
           if nodes(xRoot).parent /= yRoot then
@@ -115,11 +121,12 @@ begin
           current_id <= nodes(current_id).parent;
           if nodes(current_id).parent = current_id then
             if return_to_state = idle then
-              nodes(id1_int_reg).parent <= current_id;
               ready_reg                 <= '1';
             end if;
             root_int <= current_id;
             state    <= return_to_state;
+            -- path compression
+            nodes(find_start_id).parent <= current_id;
           end if;
 
         when others => null;
