@@ -1,9 +1,11 @@
 ------------------------------------------------------------
 -- Title      : Testbench for the union find algorithm
 ------------------------------------------------------------
--- Description: ctrl: 00 - nothing
---                    01 - union
---                    10 - find
+-- Description: ctrl: 000 - nothing
+--                    001 - union
+--                    010 - find
+--                    011 - init (or reset)
+--                    100 - are 2 nodes connected?
 ------------------------------------------------------------
 -- File       : UnionFind_TB
 -- Author     : Peter Samarin <peter.samarin@gmail.com>
