@@ -61,8 +61,9 @@ begin
 
   ----- Test vector generation -------------------------------------------
   TESTS : process is
-    variable n_errors : integer := 0;
-    variable test_nr : integer := 1;
+    variable n_errors     : integer := 0;
+    variable test_nr      : integer := 1;
+    variable main_test_nr : integer := 1;
     procedure print_nodes (
       signal ctrl     : in std_logic_vector(1 downto 0);
       signal id1, id2 :    std_logic_vector(N-1 downto 0)) is
@@ -81,7 +82,7 @@ begin
         when "11"   => operation := "idle ";
         when others => null;
       end case;
-      	
+
       for i in 0 to 2**N-1 loop
         write(s, string'(integer'image(i) & " "));
       end loop;
@@ -150,14 +151,16 @@ begin
       find(x_std);
     end procedure find;
 
-    procedure should_find (constant x        : in integer;
-                           constant expected : in integer;
-                           constant test_nr  : in integer) is
+    procedure should_find (constant x            : in integer;
+                           constant expected     : in integer;
+                           constant test_nr      : in integer;
+                           constant main_test_nr : in integer
+                           ) is
     begin
       find(x);
       if to_integer(unsigned(root)) /= expected then
         n_errors := n_errors + 1;
-        print("test " & integer'image(test_nr) & ": ERROR, expected " &
+        print("--- test " & integer'image(main_test_nr) & "," & integer'image(test_nr) & ": ERROR, expected " &
               integer'image(expected) & ", got " & integer'image(to_integer(unsigned(root))));
       end if;
     end procedure should_find;
@@ -186,19 +189,23 @@ begin
       union(i, i+1);
     end loop;
 
-    union(9,10);
-    union(19,20);
+    union(9, 10);
+    union(19, 20);
 
+    main_test_nr := 1;
     for i in 0 to 31 loop
-      should_find(test_nr, 0, i);
+      should_find(i, 0, test_nr, main_test_nr);
       test_nr := test_nr + 1;
     end loop;
-    
+
+    main_test_nr := 2;
     for i in 0 to 31 loop
-      should_find(test_nr, 0, i);
+      should_find(i, 0, test_nr, main_test_nr);
       test_nr := test_nr + 1;
     end loop;
-    
+
+    init;
+
     wait until rising_edge(clk_test);
     ENDSIM := true;
     if n_errors = 0 then
