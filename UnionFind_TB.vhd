@@ -28,6 +28,7 @@ architecture Testbench of UnionFind_TB is
   signal test            : integer                          := 0;
   signal nodes           : node_vector (0 to 2**N-1)        := (others => (N-1, 1));
   shared variable ENDSIM : boolean                          := false;
+  shared variable DEBUG  : boolean                          := false;
 begin
   ---- Design Under Verification -----------------------------------------
   DUV : entity work.UnionFind
@@ -64,43 +65,60 @@ begin
     variable n_errors     : integer := 0;
     variable test_nr      : integer := 1;
     variable main_test_nr : integer := 1;
+--    variable DEBUG        : boolean := false;
+
+    procedure insert_empty_space (
+      constant i : in integer;
+      variable s : inout line) is
+    begin
+      if i < 10 then
+        write(s, string'(" "));
+      end if;
+    end procedure insert_empty_space;
+
     procedure print_nodes (
       signal ctrl     : in std_logic_vector(1 downto 0);
       signal id1, id2 :    std_logic_vector(N-1 downto 0)) is
       variable s         : line;
       variable operation : string(1 to 5) := "     ";
     begin
-      case ctrl is
-        when "00" => operation := "idle ";
-        when "01" =>
-          operation := "union";
-          print("union: " & integer'image(to_integer(unsigned(id1))) & ", " &
-                integer'image(to_integer(unsigned(id2))));
-        when "10" =>
-          operation := "find ";
-          print("find: " & integer'image(to_integer(unsigned(id1))));
-        when "11"   => operation := "idle ";
-        when others => null;
-      end case;
+      if DEBUG then
+        case ctrl is
+          when "00" => operation := "idle ";
+          when "01" =>
+            operation := "union";
+            print("union: " & integer'image(to_integer(unsigned(id1))) & ", " &
+                  integer'image(to_integer(unsigned(id2))));
+          when "10" =>
+            operation := "find ";
+            print("find: " & integer'image(to_integer(unsigned(id1))));
+          when "11"   => operation := "idle ";
+          when others => null;
+        end case;
 
-      for i in 0 to 2**N-1 loop
-        write(s, string'(integer'image(i) & " "));
-      end loop;
-      writeline(output, s);
-      for i in 0 to 2**N-1 loop
-        write(s, string'(integer'image(nodes(i).parent) & " "));
-      end loop;
-      writeline(output, s);
-      for i in 0 to 2**N-1 loop
-        write(s, string'(integer'image(nodes(i).weight) & " "));
-      end loop;
-      writeline(output, s);
-      if operation = "find " then
-        print("----------------- => " & integer'image(to_integer(unsigned(root))));
-      else
-        print("---------------------");
+        -- print index
+        for i in 0 to 2**N-1 loop
+          insert_empty_space(i, s);
+          write(s, string'(integer'image(i) & " "));
+        end loop;
+
+        writeline(output, s);
+        for i in 0 to 2**N-1 loop
+          insert_empty_space(nodes(i).parent,s);
+          write(s, string'(integer'image(nodes(i).parent) & " "));
+        end loop;
+        writeline(output, s);
+        for i in 0 to 2**N-1 loop
+          insert_empty_space(nodes(i).weight,s);
+          write(s, string'(integer'image(nodes(i).weight) & " "));
+        end loop;
+        writeline(output, s);
+        if operation = "find " then
+          print("----------------- => " & integer'image(to_integer(unsigned(root))));
+        else
+          print("---------------------");
+        end if;
       end if;
-
     end procedure print_nodes;
 
     procedure union (
@@ -177,6 +195,7 @@ begin
     end procedure init;
   begin
     wait until ready = '1';
+    DEBUG := false;
     for i in 0 to 8 loop
       union(i, i+1);
     end loop;
@@ -192,6 +211,7 @@ begin
     union(9, 10);
     union(19, 20);
 
+
     main_test_nr := 1;
     for i in 0 to 31 loop
       should_find(i, 0, test_nr, main_test_nr);
@@ -204,9 +224,26 @@ begin
       test_nr := test_nr + 1;
     end loop;
 
+    -- Manual test
+    DEBUG        := true;
+    main_test_nr := 3;
     init;
+    for i in 0 to 15 loop
+      union(i, 31-i);
+    end loop;
+
+
+    for i in 15 to 30 loop
+      union(i, i+1);
+    end loop;
+
 
     wait until rising_edge(clk_test);
+
+
+    --------------------------------------------------------
+    -- Finish simulation
+    --------------------------------------------------------
     ENDSIM := true;
     if n_errors = 0 then
       print ("----- SIMULATION SUCCESSFUL -----");
