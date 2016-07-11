@@ -1,0 +1,3 @@
+This is a VHDL implementation of the weighted quick /union/ and a simplified path compression.
+Each /find(x)/-operation results in path compression of the /x/ only, unlike the full path compression algorithm that changes all parent node nodes on the search path.
+
