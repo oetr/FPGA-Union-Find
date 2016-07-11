@@ -21,22 +21,23 @@ entity UnionFind is
     DEBUG : boolean := false);
   port (
     -- debug
-    all_nodes  : out node_vector (0 to 2**N-1)      := (others => (N-1, 1));
+    all_nodes    : out node_vector (0 to 2**N-1)      := (others => (N-1, 1));
     -- user interface
-    id1        : in  std_logic_vector(N-1 downto 0) := (others => '0');
-    id2        : in  std_logic_vector(N-1 downto 0) := (others => '0');
-    ctrl       : in  std_logic_vector(1 downto 0)   := (others => '0');
-    ctrl_valid : in  std_logic                      := '0';
+    id1          : in  std_logic_vector(N-1 downto 0) := (others => '0');
+    id2          : in  std_logic_vector(N-1 downto 0) := (others => '0');
+    ctrl         : in  std_logic_vector(2 downto 0)   := (others => '0');
+    ctrl_valid   : in  std_logic                      := '0';
     -- outputs
-    root       : out std_logic_vector(N-1 downto 0) := (others => '0');
-    ready      : out std_logic                      := '0';
+    root         : out std_logic_vector(N-1 downto 0) := (others => '0');
+    is_connected : out std_logic                      := '0';
+    ready        : out std_logic                      := '0';
     -- other
-    clk        : in  std_logic                      := '0');
+    clk          : in  std_logic                      := '0');
 
 end UnionFind;
 ------------------------------------------------------------
 architecture arch of UnionFind is
-  type state_type is (init, idle, find, union, union1);
+  type state_type is (init, idle, find, union, union1, connected1, connected);
   -- signals
   signal state                    : state_type                := init;
   signal return_to_state          : state_type                := init;
@@ -50,13 +51,15 @@ architecture arch of UnionFind is
   signal counter                  : integer range 0 to 2**N-1 := 0;
   -- output signals
   signal ready_reg                : std_logic                 := '0';
+  signal is_connected_reg         : std_logic                 := '0';
 begin
 
   process (clk) is
     variable s : line;
   begin
     if rising_edge(clk) then
-      ready_reg <= '0';
+      ready_reg        <= '0';
+      is_connected_reg <= '0';
       case state is
 
         when init =>
@@ -73,8 +76,10 @@ begin
         when idle =>
           if ctrl_valid = '1' then
             case ctrl is
-              when "00" => null;
-              when "01" =>              -- union
+              when "000" =>
+                state <= idle;
+
+              when "001" =>             -- union
                 id2_int_reg     <= id2_int;
                 state           <= find;
                 current_id      <= nodes(id1_int).parent;
@@ -82,16 +87,25 @@ begin
                 -- path compression
                 find_start_id   <= id1_int;
 
-              when "10" =>              -- find
+              when "010" =>             -- find
                 find_start_id   <= id1_int;
                 state           <= find;
                 current_id      <= nodes(id1_int).parent;
                 -- path compression
                 return_to_state <= idle;
 
-              when "11" =>
+              when "011" =>             -- init
                 state   <= init;
                 counter <= 0;
+
+              when "100" =>             -- connected
+                id2_int_reg     <= id2_int;
+                state           <= find;
+                current_id      <= nodes(id1_int).parent;
+                return_to_state <= connected1;
+                -- path compression
+                find_start_id   <= id1_int;
+
               when others => null;
             end case;
           end if;
@@ -117,14 +131,29 @@ begin
           ready_reg <= '1';
           state     <= idle;
 
+        when connected1 =>
+          id1_int_reg     <= root_int;
+          current_id      <= nodes(id2_int_reg).parent;
+          return_to_state <= connected;
+          state           <= find;
+          -- path compression
+          find_start_id   <= id2_int_reg;
+
+        when connected =>
+          ready_reg <= '1';
+          state     <= idle;
+          if nodes(xRoot).parent = yRoot then
+            is_connected_reg <= '1';
+          end if;
+
         when find =>
           current_id <= nodes(current_id).parent;
           if nodes(current_id).parent = current_id then
             if return_to_state = idle then
-              ready_reg                 <= '1';
+              ready_reg <= '1';
             end if;
-            root_int <= current_id;
-            state    <= return_to_state;
+            root_int                    <= current_id;
+            state                       <= return_to_state;
             -- path compression
             nodes(find_start_id).parent <= current_id;
           end if;
@@ -143,7 +172,8 @@ begin
   ----------------------------------------------------------
   -- Outputs
   ----------------------------------------------------------
-  ready <= ready_reg;
+  ready        <= ready_reg;
+  is_connected <= is_connected_reg;
 
   -- debug
   all_nodes <= nodes;

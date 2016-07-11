@@ -84,18 +84,16 @@ package txt_util is
   procedure print(file out_file :    text;
                   char          : in character);
 
+  -- appends contents of a string to a file until line feed occurs
+  -- (LF is considered to be the end of the string)
+  procedure str_write(file out_file :    text;
+                      new_string    : in string);
 end txt_util;
 
 
 
-
 package body txt_util is
-
-
-
-
   -- prints text to the screen
-
   procedure print(text : string) is
     variable msg_line : line;
   begin
@@ -104,10 +102,7 @@ package body txt_util is
   end print;
 
 
-
-
   -- prints text to the screen when active
-
   procedure print(active : boolean; text : string) is
   begin
     if active then
@@ -117,7 +112,6 @@ package body txt_util is
 
 
   -- converts std_logic into a character
-
   function chr(sl : std_logic) return character is
     variable c : character;
   begin
@@ -514,16 +508,16 @@ package body txt_util is
 
 
 -- read variable length string from input file
-  
+
   procedure str_read(file in_file :     text;
                      res_string   : out string) is
 
     variable l         : line;
     variable c         : character;
     variable is_string : boolean;
-    
+
   begin
-    
+
     readline(in_file, l);
     -- clear the contents of the result string
     for i in res_string'range loop
@@ -538,7 +532,7 @@ package body txt_util is
         exit;
       end if;
     end loop;
-    
+
   end str_read;
 
   -- read a variable length std logic vector represented by hex string
@@ -591,7 +585,7 @@ package body txt_util is
       end case;
       read(l, c, is_string);
     end loop;
-    
+
   end hex_read;
 
 
@@ -600,47 +594,43 @@ package body txt_util is
                   new_string    : in string) is
 
     variable l : line;
-    
+
   begin
-    
+
     write(l, new_string);
     writeline(out_file, l);
-    
+
   end print;
 
 
--- print character to a file and start new line
+  -- print character to a file and start new line
   procedure print(file out_file :    text;
                   char          : in character) is
 
     variable l : line;
-    
+
   begin
-    
+
     write(l, char);
     writeline(out_file, l);
-    
+
   end print;
 
 
 
--- appends contents of a string to a file until line feed occurs
--- (LF is considered to be the end of the string)
-
+  -- appends contents of a string to a file until line feed occurs
+  -- (LF is considered to be the end of the string)
   procedure str_write(file out_file :    text;
                       new_string    : in string) is
   begin
-    
+
     for i in new_string'range loop
       print(out_file, new_string(i));
       if new_string(i) = LF then        -- end of string
         exit;
       end if;
     end loop;
-    
+
   end str_write;
-
-
-
 
 end txt_util;
