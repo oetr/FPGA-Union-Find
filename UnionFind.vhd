@@ -43,6 +43,7 @@ architecture arch of UnionFind is
   signal nodes                    : node_vector (0 to 2**N-1) := (others => (N-1, 1));
   signal id1_int, id2_int         : integer range 0 to 2**N-1 := 0;
   signal id1_int_reg, id2_int_reg : integer range 0 to 2**N-1 := 0;
+  signal xRoot, yRoot             : integer range 0 to 2**N-1 := 0;
   signal current_id               : integer range 0 to 2**N-1 := 0;
   signal root_int                 : integer range 0 to 2**N-1 := 0;
   signal counter                  : integer range 0 to 2**N-1 := 0;
@@ -79,12 +80,13 @@ begin
                 return_to_state <= union1;
 
               when "10" =>              -- find
+                id1_int_reg     <= id1_int;
                 state           <= find;
                 current_id      <= nodes(id1_int).parent;
                 return_to_state <= idle;
 
-              when "11"   =>
-                state <= init;
+              when "11" =>
+                state   <= init;
                 counter <= 0;
               when others => null;
             end case;
@@ -97,14 +99,13 @@ begin
           state           <= find;
 
         when union =>
-          if nodes(id1_int_reg).parent /= root_int then
-
-            if nodes(id1_int_reg).weight < nodes(root_int).weight then
-              nodes(id1_int_reg).parent <= root_int;
-              nodes(root_int).weight    <= nodes(root_int).weight + nodes(id1_int_reg).weight;
+          if nodes(xRoot).parent /= yRoot then
+            if nodes(xRoot).weight < nodes(yRoot).weight then
+              nodes(xRoot).parent <= yRoot;
+              nodes(yRoot).weight <= nodes(yRoot).weight + nodes(xRoot).weight;
             else
-              nodes(root_int).parent    <= id1_int_reg;
-              nodes(id1_int_reg).weight <= nodes(id1_int_reg).weight + nodes(root_int).weight;
+              nodes(yRoot).parent <= xRoot;
+              nodes(xRoot).weight <= nodes(xRoot).weight + nodes(yRoot).weight;
             end if;
           end if;
           ready_reg <= '1';
@@ -114,7 +115,8 @@ begin
           current_id <= nodes(current_id).parent;
           if nodes(current_id).parent = current_id then
             if return_to_state = idle then
-              ready_reg <= '1';
+              nodes(id1_int_reg).parent <= current_id;
+              ready_reg                 <= '1';
             end if;
             root_int <= current_id;
             state    <= return_to_state;
@@ -128,6 +130,8 @@ begin
   id1_int <= to_integer(unsigned(id1));
   id2_int <= to_integer(unsigned(id2));
   root    <= std_logic_vector(to_unsigned(root_int, N));
+  xRoot   <= id1_int_reg;
+  yRoot   <= root_int;
 
   ----------------------------------------------------------
   -- Outputs

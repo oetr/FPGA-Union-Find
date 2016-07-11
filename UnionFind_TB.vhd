@@ -61,6 +61,8 @@ begin
 
   ----- Test vector generation -------------------------------------------
   TESTS : process is
+    variable n_errors : integer := 0;
+    variable test_nr : integer := 1;
     procedure print_nodes (
       signal ctrl     : in std_logic_vector(1 downto 0);
       signal id1, id2 :    std_logic_vector(N-1 downto 0)) is
@@ -79,7 +81,7 @@ begin
         when "11"   => operation := "idle ";
         when others => null;
       end case;
-
+      	
       for i in 0 to 2**N-1 loop
         write(s, string'(integer'image(i) & " "));
       end loop;
@@ -148,6 +150,17 @@ begin
       find(x_std);
     end procedure find;
 
+    procedure should_find (constant x        : in integer;
+                           constant expected : in integer;
+                           constant test_nr  : in integer) is
+    begin
+      find(x);
+      if to_integer(unsigned(root)) /= expected then
+        n_errors := n_errors + 1;
+        print("test " & integer'image(test_nr) & ": ERROR, expected " &
+              integer'image(expected) & ", got " & integer'image(to_integer(unsigned(root))));
+      end if;
+    end procedure should_find;
 
     procedure init is
     begin
@@ -160,30 +173,41 @@ begin
       print_nodes(ctrl, id1, id2);
     end procedure init;
   begin
-    ------------------------------------------------------------------
-    -- reset and assign default values
-    ------------------------------------------------------------------
-    rst <= '1';
-    wait until rising_edge(clk_test);
-    rst <= '0';
-
-    ------------------------------------------------------------------
-    -- read the file with inputs and compare with the outputs
-    ------------------------------------------------------------------
     wait until ready = '1';
-    union(0, 1);
-    union(1, 2);
-    union(2, 3);
-    union(3, 4);
---    union(4, 5);
-    union(5, 6);
-    union(7, 6);
-    union(7, 4);
-    find(7);
-    init;
+    for i in 0 to 8 loop
+      union(i, i+1);
+    end loop;
+
+    for i in 10 to 18 loop
+      union(i, i+1);
+    end loop;
+
+    for i in 20 to 30 loop
+      union(i, i+1);
+    end loop;
+
+    union(9,10);
+    union(19,20);
+
+    for i in 0 to 31 loop
+      should_find(test_nr, 0, i);
+      test_nr := test_nr + 1;
+    end loop;
+    
+    for i in 0 to 31 loop
+      should_find(test_nr, 0, i);
+      test_nr := test_nr + 1;
+    end loop;
+    
     wait until rising_edge(clk_test);
     ENDSIM := true;
-    print ("----- SIMULATION COMPLETED -----");
+    if n_errors = 0 then
+      print ("----- SIMULATION SUCCESSFUL -----");
+    else
+      assert false report "----- SIMULATION NOT SUCCESSFUL, failed (" &
+        integer'image(n_errors) & ") tests."
+        severity failure;
+    end if;
     wait;
   end process;
 end Testbench;
