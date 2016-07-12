@@ -14,13 +14,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.UFlib.all;
-use std.textio.all;
-use work.txt_util.all;
 ------------------------------------------------------------
 entity UnionFind is
   generic (
-    N     : integer := 3;
-    DEBUG : boolean := false);
+    N : integer := 3);
   port (
     -- debug
     all_nodes    : out node_vector (0 to 2**N-1)      := (others => (N-1, 1));
@@ -57,7 +54,6 @@ architecture arch of UnionFind is
 begin
 
   process (clk) is
-    variable s : line;
   begin
     if rising_edge(clk) then
       ready_reg        <= '0';
