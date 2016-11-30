@@ -1,13 +1,16 @@
 ------------------------------------------------------------
--- Title      : Testbench for the union find algorithm
+-- Title      : Union find algorithm
 ------------------------------------------------------------
 -- Description: ctrl: 000 - nothing
 --                    001 - union
 --                    010 - find
 --                    011 - init (or reset)
 --                    100 - are 2 nodes connected?
+-- only the features stored in the root noded are important
+-- we don't waste resources to keep the features of non-root
+-- nodes up to date
 ------------------------------------------------------------
--- File       : UnionFind_TB
+-- File       : UnionFind
 -- Author     : Peter Samarin <peter.samarin@gmail.com>
 ------------------------------------------------------------
 library ieee;
@@ -36,21 +39,31 @@ entity UnionFind is
 end UnionFind;
 ------------------------------------------------------------
 architecture arch of UnionFind is
-  type state_type is (init, idle, find, union, union1, connected1, connected);
+  type state_type is (init, idle, find, union, connected);
   -- signals
   signal state                    : state_type                := init;
-  signal return_to_state          : state_type                := init;
   signal nodes                    : node_vector (0 to 2**N-1) := (others => (N-1, 1));
   signal id1_int, id2_int         : integer range 0 to 2**N-1 := 0;
   signal id1_int_reg, id2_int_reg : integer range 0 to 2**N-1 := 0;
-  signal find_start_id            : integer range 0 to 2**N-1 := 0;
+  signal find_start_id1           : integer range 0 to 2**N-1 := 0;
+  signal find_start_id2           : integer range 0 to 2**N-1 := 0;
   signal xRoot, yRoot             : integer range 0 to 2**N-1 := 0;
-  signal current_id               : integer range 0 to 2**N-1 := 0;
-  signal root_int                 : integer range 0 to 2**N-1 := 0;
+  signal current_id1              : integer range 0 to 2**N-1 := 0;
+  signal current_id2              : integer range 0 to 2**N-1 := 0;
+  signal xRoot_int                : integer range 0 to 2**N-1 := 0;
+  signal yRoot_int                : integer range 0 to 2**N-1 := 0;
   signal counter                  : integer range 0 to 2**N-1 := 0;
+
+  signal search_01 : std_logic := '0';
+  signal search_02 : std_logic := '0';
+
+  signal found_01 : std_logic := '0';
+  signal found_02 : std_logic := '0';
+
+
   -- output signals
-  signal ready_reg                : std_logic                 := '0';
-  signal is_connected_reg         : std_logic                 := '0';
+  signal ready_reg        : std_logic := '0';
+  signal is_connected_reg : std_logic := '0';
 begin
 
   process (clk) is
@@ -78,94 +91,97 @@ begin
                 state <= idle;
 
               when "001" =>             -- union
-                id2_int_reg     <= id2_int;
-                state           <= find;
-                current_id      <= nodes(id1_int).parent;
-                return_to_state <= union1;
+                id2_int_reg    <= id2_int;
+                state          <= union;
+                xRoot          <= nodes(id1_int).parent;
+                yRoot          <= nodes(id2_int).parent;
                 -- path compression
-                find_start_id   <= id1_int;
+                find_start_id1 <= id1_int;
+                find_start_id2 <= id2_int;
 
               when "010" =>             -- find
-                find_start_id   <= id1_int;
-                state           <= find;
-                current_id      <= nodes(id1_int).parent;
-                -- path compression
-                return_to_state <= idle;
+                find_start_id1 <= id1_int;
+                state          <= find;
+                xRoot          <= nodes(id1_int).parent;
+                -- save query node for later path compression
+                find_start_id1 <= id1_int;
 
               when "011" =>             -- init
                 state   <= init;
                 counter <= 0;
 
               when "100" =>             -- connected
-                id2_int_reg     <= id2_int;
-                state           <= find;
-                current_id      <= nodes(id1_int).parent;
-                return_to_state <= connected1;
-                -- path compression
-                find_start_id   <= id1_int;
+                id2_int_reg    <= id2_int;
+                state          <= connected;
+                xRoot          <= nodes(id1_int).parent;
+                yRoot          <= nodes(id2_int).parent;
+                -- save query node for later path compression
+                find_start_id1 <= id1_int;
+                find_start_id2 <= id2_int;
 
               when others => null;
             end case;
           end if;
 
-        when union1 =>
-          id1_int_reg     <= root_int;
-          current_id      <= nodes(id2_int_reg).parent;
-          return_to_state <= union;
-          state           <= find;
-          -- path compression
-          find_start_id   <= id2_int_reg;
-
         when union =>
-          if nodes(xRoot).parent /= yRoot then
-            if nodes(xRoot).weight < nodes(yRoot).weight then
-              nodes(xRoot).parent <= yRoot;
-              nodes(yRoot).weight <= nodes(yRoot).weight + nodes(xRoot).weight;
-            else
-              nodes(yRoot).parent <= xRoot;
-              nodes(xRoot).weight <= nodes(xRoot).weight + nodes(yRoot).weight;
+          if xRoot = nodes(xRoot).parent and yRoot = nodes(yRoot).parent then
+            state     <= idle;
+            ready_reg <= '1';
+
+            -- path compression
+            nodes(find_start_id1).parent <= xRoot;
+            nodes(find_start_id2).parent <= yRoot;
+
+            -- union node, and update weight
+            if nodes(xRoot).parent /= yRoot then
+              if nodes(xRoot).weight < nodes(yRoot).weight then
+                nodes(xRoot).parent <= yRoot;
+                nodes(yRoot).weight <= nodes(yRoot).weight + nodes(xRoot).weight;
+              else
+                nodes(yRoot).parent <= xRoot;
+                nodes(xRoot).weight <= nodes(xRoot).weight + nodes(yRoot).weight;
+              end if;
             end if;
           end if;
-          ready_reg <= '1';
-          state     <= idle;
 
-        when connected1 =>
-          id1_int_reg     <= root_int;
-          current_id      <= nodes(id2_int_reg).parent;
-          return_to_state <= connected;
-          state           <= find;
-          -- path compression
-          find_start_id   <= id2_int_reg;
+          xRoot <= nodes(xRoot).parent;
+          yRoot <= nodes(yRoot).parent;
+
 
         when connected =>
-          ready_reg <= '1';
-          state     <= idle;
-          if nodes(xRoot).parent = yRoot then
-            is_connected_reg <= '1';
+          if xRoot = nodes(xRoot).parent and yRoot = nodes(yRoot).parent then
+            state     <= idle;
+            ready_reg <= '1';
+            if xRoot = yRoot then
+              is_connected_reg <= '1';
+            end if;
+            -- path compression
+            nodes(find_start_id1).parent <= xRoot;
+            nodes(find_start_id2).parent <= yRoot;
           end if;
 
+          xRoot <= nodes(xRoot).parent;
+          yRoot <= nodes(yRoot).parent;
+
+
         when find =>
-          current_id <= nodes(current_id).parent;
-          if nodes(current_id).parent = current_id then
-            if return_to_state = idle then
-              ready_reg <= '1';
-            end if;
-            root_int                    <= current_id;
-            state                       <= return_to_state;
-            -- path compression
-            nodes(find_start_id).parent <= current_id;
+          xRoot <= nodes(xRoot).parent;
+          if xRoot = nodes(xRoot).parent then
+            state                        <= idle;
+            ready_reg                    <= '1';
+            nodes(find_start_id1).parent <= xRoot;
           end if;
 
         when others => null;
+
       end case;
     end if;
   end process;
 
+  -- convenience signals
   id1_int <= to_integer(unsigned(id1));
   id2_int <= to_integer(unsigned(id2));
-  root    <= std_logic_vector(to_unsigned(root_int, N));
-  xRoot   <= id1_int_reg;
-  yRoot   <= root_int;
+  root    <= std_logic_vector(to_unsigned(xRoot, N));
 
   ----------------------------------------------------------
   -- Outputs

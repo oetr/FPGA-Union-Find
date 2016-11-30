@@ -238,7 +238,7 @@ begin
     end procedure init;
   begin
     wait until ready = '1';
-    DEBUG := false;
+    DEBUG := true;
     for i in 0 to 8 loop
       union(i, i+1);
     end loop;
@@ -264,6 +264,7 @@ begin
     for i in 0 to 31 loop
       should_find(i, 0);
     end loop;
+    DEBUG := false;
 
     -- Manual test
     init;
