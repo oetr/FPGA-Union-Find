@@ -35,35 +35,23 @@ entity UnionFind is
     ready        : out std_logic                      := '0';
     -- other
     clk          : in  std_logic                      := '0');
-
 end UnionFind;
 ------------------------------------------------------------
 architecture arch of UnionFind is
   type state_type is (init, idle, find, union, connected);
   -- signals
-  signal state                    : state_type                := init;
-  signal nodes                    : node_vector (0 to 2**N-1) := (others => (N-1, 1));
-  signal id1_int, id2_int         : integer range 0 to 2**N-1 := 0;
-  signal id1_int_reg, id2_int_reg : integer range 0 to 2**N-1 := 0;
-  signal find_start_id1           : integer range 0 to 2**N-1 := 0;
-  signal find_start_id2           : integer range 0 to 2**N-1 := 0;
-  signal xRoot, yRoot             : integer range 0 to 2**N-1 := 0;
-  signal current_id1              : integer range 0 to 2**N-1 := 0;
-  signal current_id2              : integer range 0 to 2**N-1 := 0;
-  signal xRoot_int                : integer range 0 to 2**N-1 := 0;
-  signal yRoot_int                : integer range 0 to 2**N-1 := 0;
-  signal counter                  : integer range 0 to 2**N-1 := 0;
-
-  signal search_01 : std_logic := '0';
-  signal search_02 : std_logic := '0';
-
-  signal found_01 : std_logic := '0';
-  signal found_02 : std_logic := '0';
-
-
-  -- output signals
-  signal ready_reg        : std_logic := '0';
-  signal is_connected_reg : std_logic := '0';
+  signal state            : state_type                := init;
+  signal nodes            : node_vector (0 to 2**N-1) := (others => (N-1, 1));
+  signal id1_int, id2_int : integer range 0 to 2**N-1 := 0;
+  signal find_start_id1   : integer range 0 to 2**N-1 := 0;
+  signal find_start_id2   : integer range 0 to 2**N-1 := 0;
+  signal xRoot, yRoot     : integer range 0 to 2**N-1 := 0;
+  signal xRoot_int        : integer range 0 to 2**N-1 := 0;
+  signal yRoot_int        : integer range 0 to 2**N-1 := 0;
+  signal counter          : integer range 0 to 2**N-1 := 0;
+  -- output registers
+  signal ready_reg        : std_logic                 := '0';
+  signal is_connected_reg : std_logic                 := '0';
 begin
 
   process (clk) is
@@ -91,7 +79,6 @@ begin
                 state <= idle;
 
               when "001" =>             -- union
-                id2_int_reg    <= id2_int;
                 state          <= union;
                 xRoot          <= nodes(id1_int).parent;
                 yRoot          <= nodes(id2_int).parent;
@@ -103,6 +90,10 @@ begin
                 find_start_id1 <= id1_int;
                 state          <= find;
                 xRoot          <= nodes(id1_int).parent;
+                if id1_int = nodes(id1_int).parent then
+                  state     <= idle;
+                  ready_reg <= '1';
+                end if;
                 -- save query node for later path compression
                 find_start_id1 <= id1_int;
 
@@ -111,7 +102,6 @@ begin
                 counter <= 0;
 
               when "100" =>             -- connected
-                id2_int_reg    <= id2_int;
                 state          <= connected;
                 xRoot          <= nodes(id1_int).parent;
                 yRoot          <= nodes(id2_int).parent;

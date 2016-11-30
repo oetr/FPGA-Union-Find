@@ -199,8 +199,12 @@ begin
       ctrl       <= "010";
       ctrl_valid <= '1';
       wait until rising_edge(clk_test);
+      wait for 0.1 ns;
       ctrl_valid <= '0';
-      wait until ready = '1';
+      if ready /= '1' then
+        print ("READY=====================");
+        wait until ready = '1';
+      end if;
       ctrl       <= "000";
       print_nodes(ctrl, id1, id2);
     end procedure find;
